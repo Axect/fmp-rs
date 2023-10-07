@@ -1,3 +1,5 @@
+use peroxide::fuga::*;
+
 /// Simple Moving Average
 pub fn sma(v: &[f64], period: usize) -> Vec<f64> {
     let mut res = vec![0f64; v.len()];
@@ -45,4 +47,23 @@ pub fn wma(v: &[f64], period: usize) -> Vec<f64> {
         }
     }
     res
+}
+
+/// Double Exponential Moving Average
+pub fn dema(v: &[f64], period: usize) -> Vec<f64> {
+    let ema_ = ema(v, period);
+    let ema_ema = ema(&ema_, period);
+    zip_with(|x, y| 2.0 * x - y, &ema_, &ema_ema)
+}
+
+/// Triple Exponential Moving Average
+pub fn tema(v: &[f64], period: usize) -> Vec<f64> {
+    let ema_ = ema(v, period);
+    let ema_ema = ema(&ema_, period);
+    let ema_ema_ema = ema(&ema_ema, period);
+    ema_.iter()
+        .zip(ema_ema.iter())
+        .zip(ema_ema_ema.iter())
+        .map(|((x, y), z)| 3.0 * x - 3.0 * y + z)
+        .collect::<Vec<f64>>()
 }

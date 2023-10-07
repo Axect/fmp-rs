@@ -1,6 +1,6 @@
 use peroxide::fuga::*;
 use fmp::api::HistoricalPriceFull;
-use fmp::ta::{sma, ema, wma};
+use fmp::ta::{sma, ema, wma, dema, tema};
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let api_key_dir = "./api_key.txt";
@@ -8,7 +8,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let symbol = "005930.KS";
     let from = "2021-01-01";
-    let to = "2023-10-06";
+    let to = "2022-12-31";
 
     let mut samsung_price = HistoricalPriceFull::new(symbol);
     //samsung_price.download_full(&api_key)?;
@@ -21,11 +21,15 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let sma = sma(&tp, 20);
     let ema = ema(&tp, 20);
     let wma = wma(&tp, 20);
+    let dema = dema(&tp, 20);
+    let tema = tema(&tp, 20);
 
     df.push("tp", Series::new(tp));
     df.push("sma", Series::new(sma));
     df.push("ema", Series::new(ema));
     df.push("wma", Series::new(wma));
+    df.push("dema", Series::new(dema));
+    df.push("tema", Series::new(tema));
 
     df.print();
 

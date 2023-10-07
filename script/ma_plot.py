@@ -13,6 +13,8 @@ tp = df['tp']
 sma = df['sma']
 ema = df['ema']
 wma = df['wma']
+dema = df['dema']
+tema = df['tema']
 
 # Plot params
 pparam = dict(
@@ -31,6 +33,8 @@ with plt.style.context(["science", "nature"]):
     ax.plot(x, sma, '--', label='SMA(20)')
     ax.plot(x, ema, '-.', label='EMA(20)')
     ax.plot(x, wma, ':', label='WMA(20)')
+    ax.plot(x, dema, '--', label='DEMA(20)')
+    ax.plot(x, tema, '-.', label='TEMA(20)')
     # Tick angle
     plt.setp(ax.get_xticklabels(), rotation=30, horizontalalignment='right')
     ax.legend()
