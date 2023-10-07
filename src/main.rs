@@ -1,6 +1,6 @@
 use peroxide::fuga::*;
 use fmp::api::HistoricalPriceFull;
-use fmp::ta::sma;
+use fmp::ta::{sma, ema};
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let api_key_dir = "./api_key.txt";
@@ -16,9 +16,11 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let low: Vec<f64> = df["low"].to_vec();
     let tp = close.iter().zip(high.iter()).zip(low.iter()).map(|((c, h), l)| (c + h + l) / 3f64).collect::<Vec<f64>>();
     let sma = sma(&tp, 20);
+    let ema = ema(&tp, 20);
 
     df.push("tp", Series::new(tp));
     df.push("sma", Series::new(sma));
+    df.push("ema", Series::new(ema));
 
     df.print();
 
