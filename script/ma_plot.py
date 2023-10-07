@@ -12,6 +12,7 @@ x = pd.to_datetime(x) # datetime
 tp = df['tp']
 sma = df['sma']
 ema = df['ema']
+wma = df['wma']
 
 # Plot params
 pparam = dict(
@@ -29,6 +30,7 @@ with plt.style.context(["science", "nature"]):
     ax.plot(x, tp, label='Typical Price')
     ax.plot(x, sma, '--', label='SMA(20)')
     ax.plot(x, ema, '-.', label='EMA(20)')
+    ax.plot(x, wma, ':', label='WMA(20)')
     # Tick angle
     plt.setp(ax.get_xticklabels(), rotation=30, horizontalalignment='right')
     ax.legend()
