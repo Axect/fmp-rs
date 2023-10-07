@@ -7,8 +7,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let api_key = std::fs::read_to_string(api_key_dir)?;
 
     let symbol = "005930.KS";
-    let from = "2021-01-01";
-    let to = "2022-12-31";
+    let from = "2023-01-01";
+    let to = "2023-10-06";
 
     let mut samsung_price = HistoricalPriceFull::new(symbol);
     //samsung_price.download_full(&api_key)?;
