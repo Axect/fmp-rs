@@ -24,7 +24,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let wma = wma(&tp, 20);
     let dema = dema(&tp, 20);
     let tema = tema(&tp, 20);
-    let williams = williams_r(&high, &low, &close, 20);
+    let williams = williams_r(&high, &low, &close, 14);
 
     let mut dg = DataFrame::new(vec![]);
     dg.push("date", Series::new(date));
