@@ -1,6 +1,6 @@
 use peroxide::fuga::*;
 use fmp::api::HistoricalPriceFull;
-use fmp::ta::{sma, ema, wma, dema, tema};
+use fmp::ta::{sma, ema, wma, dema, tema, williams_r};
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let api_key_dir = "./api_key.txt";
@@ -13,7 +13,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut samsung_price = HistoricalPriceFull::new(symbol);
     //samsung_price.download_full(&api_key)?;
     samsung_price.download_interval(&api_key, from, to)?;
-    let mut df = samsung_price.to_dataframe_simple();
+    let df = samsung_price.to_dataframe_simple();
+    let date: Vec<String> = df["date"].to_vec();
     let close: Vec<f64> = df["close"].to_vec();
     let high: Vec<f64> = df["high"].to_vec();
     let low: Vec<f64> = df["low"].to_vec();
@@ -23,17 +24,21 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let wma = wma(&tp, 20);
     let dema = dema(&tp, 20);
     let tema = tema(&tp, 20);
+    let williams = williams_r(&high, &low, &close, 20);
 
-    df.push("tp", Series::new(tp));
-    df.push("sma", Series::new(sma));
-    df.push("ema", Series::new(ema));
-    df.push("wma", Series::new(wma));
-    df.push("dema", Series::new(dema));
-    df.push("tema", Series::new(tema));
+    let mut dg = DataFrame::new(vec![]);
+    dg.push("date", Series::new(date));
+    dg.push("tp", Series::new(tp));
+    dg.push("sma", Series::new(sma));
+    dg.push("ema", Series::new(ema));
+    dg.push("wma", Series::new(wma));
+    dg.push("dema", Series::new(dema));
+    dg.push("tema", Series::new(tema));
+    dg.push("williams", Series::new(williams));
 
-    df.print();
+    dg.print();
 
-    df.write_parquet("./data/005930.KS.parquet", CompressionOptions::Uncompressed)?;
+    dg.write_parquet("./data/005930.KS.parquet", CompressionOptions::Uncompressed)?;
 
     Ok(())
 }

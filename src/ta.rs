@@ -67,3 +67,20 @@ pub fn tema(v: &[f64], period: usize) -> Vec<f64> {
         .map(|((x, y), z)| 3.0 * x - 3.0 * y + z)
         .collect::<Vec<f64>>()
 }
+
+/// Williams %R
+pub fn williams_r(high: &[f64], low: &[f64], close: &[f64], period: usize) -> Vec<f64> {
+    let mut res = vec![0f64; high.len()];
+    for i in 0..high.len() {
+        let mut highest = high[i];
+        let mut lowest = low[i];
+        for j in 1..period {
+            if i >= j {
+                highest = highest.max(high[i - j]);
+                lowest = lowest.min(low[i - j]);
+            }
+        }
+        res[i] = (highest - close[i]) / (highest - lowest) * -100.0;
+    }
+    res
+}
