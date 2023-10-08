@@ -19,11 +19,12 @@ rsi = df['rsi']
 rsi_signal = df['rsi_signal']
 macd = df['macd'] / 1000
 macd_signal = df['macd_signal'] / 1000
+adx = df['adx']
 #rsi2 = dg['rsi']
 
 # Plot
 with plt.style.context(["science", "nature"]):
-    fig, axs = plt.subplots(4, 1, figsize=(8, 8), sharex=True, gridspec_kw={'height_ratios': [3, 1, 1, 1]})
+    fig, axs = plt.subplots(5, 1, figsize=(6, 7), sharex=True, gridspec_kw={'height_ratios': [3, 1, 1, 1, 1]})
     axs[0].autoscale(tight=True)
     axs[0].plot(x, tp, label='Typical Price')
     axs[0].plot(x, sma, '--', label='SMA(20)')
@@ -64,8 +65,17 @@ with plt.style.context(["science", "nature"]):
     macd_down[macd_down > 0] = np.nan
     axs[3].bar(x, macd_up, color='b', width=0.8)
     axs[3].bar(x, macd_down, color='r', width=0.8)
-    axs[3].set_xlabel("Date")
     axs[3].set_ylabel("MACD/1000")
+    axs[3].grid(True)
+
+    axs[4].autoscale(tight=True)
+    axs[4].plot(x, adx)
+    axs[4].axhline(y=20, color='b', linestyle='--')
+    axs[4].axhline(y=25, color='r', linestyle='--')
+    axs[4].set_xlabel("Date")
+    axs[4].set_ylabel("ADX")
+    axs[4].set_ylim([10, 60])
+    axs[4].grid(True)
 
     fig.tight_layout()
     fig.savefig('figs/005930.KS.png', dpi=300, bbox_inches='tight')

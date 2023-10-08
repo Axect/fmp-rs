@@ -135,6 +135,51 @@ pub fn atr(high: &[f64], low: &[f64], close: &[f64], period: usize) -> Vec<f64> 
 }
 
 /// Average Directional movement Index
+#[allow(unused_assignments)]
 pub fn adx(high: &[f64], low: &[f64], close: &[f64], period: usize) -> Vec<f64> {
-    todo!()
+    let mut up_move = 0f64;
+    let mut down_move = 0f64;
+    let mut dm_plus = vec![0f64; high.len()];
+    let mut dm_minus = vec![0f64; high.len()];
+    for i in 1 .. high.len() {
+        up_move = high[i] - high[i - 1];
+        down_move = low[i - 1] - low[i];
+
+        if up_move > down_move && up_move > 0f64 {
+            dm_plus[i] = up_move;
+        } else {
+            dm_plus[i] = 0f64;
+        }
+
+        if down_move > up_move && down_move > 0f64 {
+            dm_minus[i] = down_move;
+        } else {
+            dm_minus[i] = 0f64;
+        }
+    }
+
+    if dm_plus[1] > 0f64 {
+        dm_plus[0] = dm_plus[1];
+    } else if dm_minus[1] > 0f64 {
+        dm_minus[0] = dm_minus[1];
+    } else {
+        dm_plus[0] = 0.1f64;
+        dm_minus[0] = 0.1f64;
+    }
+
+    let dm_plus_ema = ema(&dm_plus, period);
+    let dm_minus_ema = ema(&dm_minus, period);
+    let mut atr = atr(high, low, close, period);
+
+    if atr[0] == 0f64 {
+        atr[0] = atr[1];
+    }
+
+    let (di_plus, di_minus): (Vec<f64>, Vec<f64>) = atr.iter()
+        .zip(dm_plus_ema.iter().zip(dm_minus_ema.iter()))
+        .map(|(x, (y, z))| (100f64 * y / x, 100f64 * z / x))
+        .unzip();
+
+    let dx = zip_with(|x, y| (x - y).abs() / (x + y), &di_plus, &di_minus);
+    ema(&dx, period).fmap(|x| 100f64 * x)
 }

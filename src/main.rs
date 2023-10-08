@@ -1,6 +1,6 @@
 use peroxide::fuga::*;
 use fmp::api::HistoricalPriceFull;
-use fmp::ta::{sma, ema, wma, dema, tema, williams_r, rsi, macd};
+use fmp::ta::{sma, ema, wma, williams_r, rsi, macd, adx};
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let api_key_dir = "./api_key.txt";
@@ -22,13 +22,12 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let sma_ = sma(&tp, 20);
     let ema_ = ema(&tp, 20);
     let wma_ = wma(&tp, 20);
-    //let dema_ = dema(&tp, 20);
-    //let tema_ = tema(&tp, 20);
     let williams_ = williams_r(&high, &low, &close, 14);
     let rsi_ = rsi(&close, 14);
     let rsi_signal = ema(&rsi_, 9);
     let macd_ = macd(&close, 12, 26);
     let macd_signal = ema(&macd_, 9);
+    let adx_ = adx(&high, &low, &close, 14);
 
     // Result
     let date = date[240..].to_vec();
@@ -36,13 +35,12 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let sma_ = sma_[240..].to_vec();
     let ema_ = ema_[240..].to_vec();
     let wma_ = wma_[240..].to_vec();
-    //let dema_ = dema_[240..].to_vec();
-    //let tema_ = tema_[240..].to_vec();
     let williams_ = williams_[240..].to_vec();
     let rsi_ = rsi_[240..].to_vec();
     let rsi_signal = rsi_signal[240..].to_vec();
     let macd_ = macd_[240..].to_vec();
     let macd_signal = macd_signal[240..].to_vec();
+    let adx_ = adx_[240..].to_vec();
 
     let mut dg = DataFrame::new(vec![]);
     dg.push("date", Series::new(date));
@@ -55,8 +53,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     dg.push("rsi_signal", Series::new(rsi_signal));
     dg.push("macd", Series::new(macd_));
     dg.push("macd_signal", Series::new(macd_signal));
-
-    //println!("{:?}", dg);
+    dg.push("adx", Series::new(adx_));
 
     dg.print();
 
