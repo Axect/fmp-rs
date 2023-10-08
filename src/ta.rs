@@ -106,3 +106,10 @@ pub fn rsi(v: &[f64], period: usize) -> Vec<f64> {
     let ad = smma(&d, period);
     zip_with(|x, y| 100f64 * x / (x + y + 1e-3), &au, &ad)
 }
+
+/// Moving Average Convergence Divergence
+pub fn macd(v: &[f64], period1: usize, period2: usize) -> Vec<f64> {
+    let ema1 = ema(v, period1);
+    let ema2 = ema(v, period2);
+    zip_with(|x, y| x - y, &ema1, &ema2)
+}

@@ -14,23 +14,21 @@ tp = df['tp']
 sma = df['sma']
 ema = df['ema']
 wma = df['wma']
-dema = df['dema']
-tema = df['tema']
 williams = df['williams']
 rsi = df['rsi']
 rsi_signal = df['rsi_signal']
+macd = df['macd'] / 1000
+macd_signal = df['macd_signal'] / 1000
 #rsi2 = dg['rsi']
 
 # Plot
 with plt.style.context(["science", "nature"]):
-    fig, axs = plt.subplots(3, 1, figsize=(8, 8), sharex=True, gridspec_kw={'height_ratios': [3, 1, 1]})
+    fig, axs = plt.subplots(4, 1, figsize=(8, 8), sharex=True, gridspec_kw={'height_ratios': [3, 1, 1, 1]})
     axs[0].autoscale(tight=True)
     axs[0].plot(x, tp, label='Typical Price')
     axs[0].plot(x, sma, '--', label='SMA(20)')
     axs[0].plot(x, ema, '-.', label='EMA(20)')
     axs[0].plot(x, wma, ':', label='WMA(20)')
-    axs[0].plot(x, dema, '--', label='DEMA(20)')
-    axs[0].plot(x, tema, '-.', label='TEMA(20)')
     # Tick angle
     plt.setp(axs[0].get_xticklabels(), rotation=30, horizontalalignment='right')
     axs[0].legend()
@@ -51,10 +49,23 @@ with plt.style.context(["science", "nature"]):
     axs[2].plot(x, rsi_signal, '-.')
     axs[2].axhline(y=30, color='r', linestyle='--')
     axs[2].axhline(y=70, color='r', linestyle='--')
-    axs[2].set_xlabel("Date")
     axs[2].set_ylabel("RSI")
     axs[2].set_ylim([0, 100])
     axs[2].grid(True)
+
+    axs[3].autoscale(tight=True)
+    axs[3].plot(x, macd)
+    axs[3].plot(x, macd_signal, '-.')
+    axs[3].axhline(y=0, color='k', linestyle='--')
+    # Histogram for MACD
+    macd_up = np.array(macd - macd_signal)
+    macd_up[macd_up < 0] = np.nan
+    macd_down = np.array(macd - macd_signal)
+    macd_down[macd_down > 0] = np.nan
+    axs[3].bar(x, macd_up, color='b', width=0.8)
+    axs[3].bar(x, macd_down, color='r', width=0.8)
+    axs[3].set_xlabel("Date")
+    axs[3].set_ylabel("MACD/1000")
 
     fig.tight_layout()
     fig.savefig('figs/005930.KS.png', dpi=300, bbox_inches='tight')
