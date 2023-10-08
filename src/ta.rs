@@ -113,3 +113,28 @@ pub fn macd(v: &[f64], period1: usize, period2: usize) -> Vec<f64> {
     let ema2 = ema(v, period2);
     zip_with(|x, y| x - y, &ema1, &ema2)
 }
+
+/// Average True Range
+pub fn atr(high: &[f64], low: &[f64], close: &[f64], period: usize) -> Vec<f64> {
+    let mut tr = vec![0f64; high.len()];
+    for i in 1..high.len() {
+        let h_pc = high[i].max(close[i - 1]);
+        let l_pc = low[i].min(close[i - 1]);
+        tr[i] = h_pc - l_pc;
+    }
+    let mut atr = vec![0f64; high.len()];
+    let mut sum = 0f64;
+    for i in 0 .. period {
+        sum += tr[i];
+        atr[i] = sum / (i + 1) as f64;
+    }
+    for i in period .. high.len() {
+        atr[i] = (atr[i - 1] * (period - 1) as f64 + tr[i]) / period as f64;
+    }
+    atr
+}
+
+/// Average Directional movement Index
+pub fn adx(high: &[f64], low: &[f64], close: &[f64], period: usize) -> Vec<f64> {
+    todo!()
+}
