@@ -5,7 +5,7 @@ import scienceplots
 
 # Import parquet file
 df = pd.read_parquet('data/005930.KS.parquet')
-dg = pd.read_parquet('data/005930.KS.rsi.parquet')
+#dg = pd.read_parquet('data/005930.KS.rsi.parquet')
 
 # Prepare Data to Plot
 x = df['date'] # str
@@ -19,7 +19,7 @@ tema = df['tema']
 williams = df['williams']
 rsi = df['rsi']
 rsi_signal = df['rsi_signal']
-rsi2 = dg['rsi']
+#rsi2 = dg['rsi']
 
 # Plot
 with plt.style.context(["science", "nature"]):
@@ -41,14 +41,13 @@ with plt.style.context(["science", "nature"]):
     axs[1].plot(x, williams)
     axs[1].axhline(y=-20, color='r', linestyle='--')
     axs[1].axhline(y=-80, color='r', linestyle='--')
-    axs[1].set_xlabel("Date")
     axs[1].set_ylabel("Williams \%R")
     axs[1].set_ylim([-100, 0])
     axs[1].grid(True)
 
     axs[2].autoscale(tight=True)
     axs[2].plot(x, rsi)
-    axs[2].plot(x, rsi2, '--')
+    #axs[2].plot(x, rsi2, '--')
     axs[2].plot(x, rsi_signal, '-.')
     axs[2].axhline(y=30, color='r', linestyle='--')
     axs[2].axhline(y=70, color='r', linestyle='--')

@@ -1,5 +1,5 @@
 use peroxide::fuga::*;
-use fmp::api::{HistoricalPriceFull, DailyRSI};
+use fmp::api::HistoricalPriceFull;
 use fmp::ta::{sma, ema, wma, dema, tema, williams_r, rsi};
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -58,24 +58,24 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     dg.write_parquet("./data/005930.KS.parquet", CompressionOptions::Uncompressed)?;
 
-    let mut samsung_rsi = DailyRSI::new(symbol);
-    samsung_rsi.download_interval(&api_key, from, to)?;
-    let df = samsung_rsi.to_dataframe();
-    let date: Vec<String> = df["date"].to_vec();
-    let close: Vec<f64> = df["close"].to_vec();
-    let rsi: Vec<f64> = df["rsi"].to_vec();
+    //let mut samsung_rsi = DailyRSI::new(symbol);
+    //samsung_rsi.download_interval(&api_key, from, to)?;
+    //let df = samsung_rsi.to_dataframe();
+    //let date: Vec<String> = df["date"].to_vec();
+    //let close: Vec<f64> = df["close"].to_vec();
+    //let rsi: Vec<f64> = df["rsi"].to_vec();
 
-    let date = date[240..].to_vec();
-    let close = close[240..].to_vec();
-    let rsi = rsi[240..].to_vec();
+    //let date = date[240..].to_vec();
+    //let close = close[240..].to_vec();
+    //let rsi = rsi[240..].to_vec();
 
-    let mut df = DataFrame::new(vec![]);
-    df.push("date", Series::new(date));
-    df.push("close", Series::new(close));
-    df.push("rsi", Series::new(rsi));
-    df.print();
+    //let mut df = DataFrame::new(vec![]);
+    //df.push("date", Series::new(date));
+    //df.push("close", Series::new(close));
+    //df.push("rsi", Series::new(rsi));
+    //df.print();
 
-    df.write_parquet("./data/005930.KS.rsi.parquet", CompressionOptions::Uncompressed)?;
+    //df.write_parquet("./data/005930.KS.rsi.parquet", CompressionOptions::Uncompressed)?;
 
     Ok(())
 }
