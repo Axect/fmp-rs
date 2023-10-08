@@ -183,3 +183,21 @@ pub fn adx_dmi(high: &[f64], low: &[f64], close: &[f64], period: usize) -> (Vec<
     let dx = zip_with(|x, y| (x - y).abs() / (x + y), &di_plus, &di_minus);
     (ema(&dx, period).fmap(|x| 100f64 * x), di_plus, di_minus)
 }
+
+/// Stochastic Oscillator
+pub fn stochastic(high: &[f64], low: &[f64], close: &[f64], period: usize, smooth: usize) -> (Vec<f64>, Vec<f64>) {
+    let mut k = vec![0f64; high.len()];
+    for i in 0..high.len() {
+        let mut highest = high[i];
+        let mut lowest = low[i];
+        for j in 1..period {
+            if i >= j {
+                highest = highest.max(high[i - j]);
+                lowest = lowest.min(low[i - j]);
+            }
+        }
+        k[i] = (close[i] - lowest) / (highest - lowest) * 100f64;
+    }
+    let d = sma(&k, smooth);
+    (k, d)
+}

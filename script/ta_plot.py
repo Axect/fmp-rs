@@ -22,11 +22,13 @@ macd_signal = df['macd_signal'] / 1000
 adx = df['adx']
 di_plus = df['di_plus']
 di_minus = df['di_minus']
+k = df['k']
+d = df['d']
 #rsi2 = dg['rsi']
 
 # Plot
 with plt.style.context(["science", "nature"]):
-    fig, axs = plt.subplots(6, 1, figsize=(6, 7), sharex=True, gridspec_kw={'height_ratios': [3, 1, 1, 1, 1, 1]})
+    fig, axs = plt.subplots(7, 1, figsize=(6, 8), sharex=True, gridspec_kw={'height_ratios': [4, 1, 1, 1, 1, 1, 1]})
     axs[0].autoscale(tight=True)
     axs[0].plot(x, tp, label='Typical Price')
     axs[0].plot(x, sma, '--', label='SMA(20)')
@@ -85,9 +87,18 @@ with plt.style.context(["science", "nature"]):
     di_down[di_down > 0] = np.nan
     axs[5].bar(x, di_up, color='r', width=0.8)
     axs[5].bar(x, di_down, color='b', width=0.8)
-    axs[5].set_xlabel("Date")
     axs[5].set_ylabel("DI+/-")
     axs[5].grid(True)
+
+    axs[6].autoscale(tight=True)
+    axs[6].plot(x, k, label='\%K')
+    axs[6].plot(x, d, label='\%D')
+    axs[6].axhline(y=20, color='b', linestyle='--')
+    axs[6].axhline(y=80, color='r', linestyle='--')
+    axs[6].set_xlabel("Date")
+    axs[6].set_ylabel("Stochastic")
+    axs[6].set_ylim([0, 100])
+    axs[6].grid(True)
 
     fig.tight_layout()
     fig.savefig('figs/005930.KS.png', dpi=300, bbox_inches='tight')
