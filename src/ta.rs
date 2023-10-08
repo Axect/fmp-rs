@@ -84,3 +84,25 @@ pub fn williams_r(high: &[f64], low: &[f64], close: &[f64], period: usize) -> Ve
     }
     res
 }
+
+/// Smoothed Moving Average
+pub fn smma(v: &[f64], period: usize) -> Vec<f64> {
+    ema(v, 2 * period - 1)
+}
+
+/// Relative Strength Index
+pub fn rsi(v: &[f64], period: usize) -> Vec<f64> {
+    let mut u = vec![0f64; v.len()];
+    let mut d = vec![0f64; v.len()];
+    for i in 1..v.len() {
+        let diff = v[i] - v[i - 1];
+        if diff > 0.0 {
+            u[i] = diff;
+        } else {
+            d[i] = -diff;
+        }
+    }
+    let au = smma(&u, period);
+    let ad = smma(&d, period);
+    zip_with(|x, y| 100f64 * x / (x + y + 1e-3), &au, &ad)
+}
