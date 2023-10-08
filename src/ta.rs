@@ -134,9 +134,9 @@ pub fn atr(high: &[f64], low: &[f64], close: &[f64], period: usize) -> Vec<f64> 
     atr
 }
 
-/// Average Directional movement Index
+/// Average Directional movement Index & Directional Movement Index
 #[allow(unused_assignments)]
-pub fn adx(high: &[f64], low: &[f64], close: &[f64], period: usize) -> Vec<f64> {
+pub fn adx_dmi(high: &[f64], low: &[f64], close: &[f64], period: usize) -> (Vec<f64>, Vec<f64>, Vec<f64>) {
     let mut up_move = 0f64;
     let mut down_move = 0f64;
     let mut dm_plus = vec![0f64; high.len()];
@@ -181,5 +181,5 @@ pub fn adx(high: &[f64], low: &[f64], close: &[f64], period: usize) -> Vec<f64> 
         .unzip();
 
     let dx = zip_with(|x, y| (x - y).abs() / (x + y), &di_plus, &di_minus);
-    ema(&dx, period).fmap(|x| 100f64 * x)
+    (ema(&dx, period).fmap(|x| 100f64 * x), di_plus, di_minus)
 }
