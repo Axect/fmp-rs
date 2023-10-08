@@ -1,16 +1,17 @@
 use peroxide::fuga::*;
 use fmp::api::HistoricalPriceFull;
 use fmp::ta::{sma, ema, wma, rsi, macd, adx_dmi, stochastic};
+use std::env::args;
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let api_key_dir = "./api_key.txt";
     let api_key = std::fs::read_to_string(api_key_dir)?;
 
-    let symbol = "005930.KS";
+    let symbol = args().nth(1).unwrap_or("005930.KS".to_string());
     let from = "2019-01-09"; // For cushion
     let to = "2022-10-06";
 
-    let mut samsung_price = HistoricalPriceFull::new(symbol);
+    let mut samsung_price = HistoricalPriceFull::new(&symbol);
     //samsung_price.download_full(&api_key)?;
     samsung_price.download_interval(&api_key, from, to)?;
     let df = samsung_price.to_dataframe_simple();
@@ -63,7 +64,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     dg.print();
 
-    dg.write_parquet("./data/005930.KS.parquet", CompressionOptions::Uncompressed)?;
+    dg.write_parquet(&format!("./data/{}.parquet", symbol), CompressionOptions::Uncompressed)?;
 
     Ok(())
 }
