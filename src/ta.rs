@@ -201,3 +201,62 @@ pub fn stochastic(high: &[f64], low: &[f64], close: &[f64], period: usize, smoot
     let d = sma(&k, smooth);
     (k, d)
 }
+
+/// Divergence compute for any indicator
+/// Return: (Value, Slope)
+pub fn divergence(v: &[f64]) -> (Vec<f64>, Vec<f64>) {
+    // Find all local maxima
+    let mut maxima = vec![];
+    let mut max_idx = 0usize;
+    let mut max_val = v[0];
+    for i in 1..v.len() {
+        if v[i] > max_val {
+            max_val = v[i];
+            max_idx = i;
+        } else if v[i] < max_val {
+            if max_idx > 0 {
+                maxima.push((max_idx, max_val));
+            }
+            max_idx = 0;
+            max_val = v[i];
+        }
+    }
+
+    let (idx_f64, maxima): (Vec<f64>, Vec<f64>) = maxima.into_iter().map(|(x, y)| (x as f64, y)).unzip();
+
+    // Find all local maxima of local maxima
+    let mut maxima2 = vec![];
+    let mut max_idx = 0usize;
+    let mut max_val = maxima[0];
+    for i in 1..maxima.len() {
+        if maxima[i] > max_val {
+            max_val = maxima[i];
+            max_idx = i;
+        } else if maxima[i] < max_val {
+            if max_idx > 0 {
+                maxima2.push((max_idx, max_val));
+            }
+            max_idx = 0;
+            max_val = maxima[i];
+        }
+    }
+
+    let (mut idx_f64, mut maxima): (Vec<f64>, Vec<f64>) = maxima2.into_iter().map(|(x, y)| (idx_f64[x], y)).unzip();
+
+    // Insert first & last point if it is not included
+    if idx_f64[0] != 0f64 {
+        idx_f64.insert(0, 0f64);
+        maxima.insert(0, v[0]);
+    }
+    if idx_f64[idx_f64.len() - 1] != v.len() as f64 - 1f64 {
+        idx_f64.push(v.len() as f64 - 1f64);
+        maxima.push(v[v.len() - 1]);
+    }
+
+    // Create cubic spline of local maxima
+    let cs = cubic_hermite_spline(&idx_f64, &maxima, Akima);
+    let idx = seq(0, v.len() as u32 - 1, 1);
+    let div = cs.eval_vec(&idx.fmap(|x| x as f64));
+    let slope = cs.derivative().eval_vec(&idx.fmap(|x| x as f64));
+    (div, slope)
+}

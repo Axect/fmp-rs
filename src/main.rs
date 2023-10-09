@@ -1,6 +1,6 @@
 use peroxide::fuga::*;
 use fmp::api::HistoricalPriceFull;
-use fmp::ta::{sma, ema, wma, rsi, macd, adx_dmi, stochastic};
+use fmp::ta::{sma, ema, wma, rsi, macd, adx_dmi, stochastic, divergence};
 use std::env::args;
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -8,8 +8,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let api_key = std::fs::read_to_string(api_key_dir)?;
 
     let symbol = args().nth(1).unwrap_or("005930.KS".to_string());
-    let from = "2019-01-09"; // For cushion
-    let to = "2022-10-06";
+    let from = "2022-01-09"; // For cushion
+    let to = "2023-10-09";
 
     let mut samsung_price = HistoricalPriceFull::new(&symbol);
     //samsung_price.download_full(&api_key)?;
@@ -20,11 +20,13 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let high: Vec<f64> = df["high"].to_vec();
     let low: Vec<f64> = df["low"].to_vec();
     let tp = close.iter().zip(high.iter()).zip(low.iter()).map(|((c, h), l)| (c + h + l) / 3f64).collect::<Vec<f64>>();
+    let (tp_div, tp_slope) = divergence(&tp);
     let sma_ = sma(&tp, 20);
     let ema_ = ema(&tp, 20);
     let wma_ = wma(&tp, 20);
     let rsi_ = rsi(&close, 14);
     let rsi_signal = ema(&rsi_, 9);
+    let (rsi_div, rsi_slope) = divergence(&rsi_);
     let macd_ = macd(&close, 12, 26);
     let macd_signal = ema(&macd_, 9);
     let (adx_, di_plus, di_minus) = adx_dmi(&high, &low, &close, 14);
@@ -33,11 +35,13 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Result
     let date = date[240..].to_vec();
     let tp = tp[240..].to_vec();
+    let (tp_div, tp_slope) = (tp_div[240..].to_vec(), tp_slope[240..].to_vec());
     let sma_ = sma_[240..].to_vec();
     let ema_ = ema_[240..].to_vec();
     let wma_ = wma_[240..].to_vec();
     let rsi_ = rsi_[240..].to_vec();
     let rsi_signal = rsi_signal[240..].to_vec();
+    let (rsi_div, rsi_slope) = (rsi_div[240..].to_vec(), rsi_slope[240..].to_vec());
     let macd_ = macd_[240..].to_vec();
     let macd_signal = macd_signal[240..].to_vec();
     let adx_ = adx_[240..].to_vec();
@@ -49,11 +53,15 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut dg = DataFrame::new(vec![]);
     dg.push("date", Series::new(date));
     dg.push("tp", Series::new(tp));
+    dg.push("tp_div", Series::new(tp_div));
+    dg.push("tp_slope", Series::new(tp_slope));
     dg.push("sma", Series::new(sma_));
     dg.push("ema", Series::new(ema_));
     dg.push("wma", Series::new(wma_));
     dg.push("rsi", Series::new(rsi_));
     dg.push("rsi_signal", Series::new(rsi_signal));
+    dg.push("rsi_div", Series::new(rsi_div));
+    dg.push("rsi_slope", Series::new(rsi_slope));
     dg.push("macd", Series::new(macd_));
     dg.push("macd_signal", Series::new(macd_signal));
     dg.push("adx", Series::new(adx_));
