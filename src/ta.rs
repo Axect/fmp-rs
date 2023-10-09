@@ -260,3 +260,15 @@ pub fn divergence(v: &[f64]) -> (Vec<f64>, Vec<f64>) {
     let slope = cs.derivative().eval_vec(&idx.fmap(|x| x as f64));
     (div, slope)
 }
+
+/// Commodity Channel Index
+pub fn cci(high: &[f64], low: &[f64], close: &[f64], period: usize) -> Vec<f64> {
+    let mut tp = vec![0f64; high.len()];
+    for i in 0..high.len() {
+        tp[i] = (high[i] + low[i] + close[i]) / 3f64;
+    }
+    let m = sma(&tp, period);
+    let deviation = zip_with(|x, y| x - y, &tp, &m);
+    let d = sma(&deviation.fmap(|x| x.abs()), period);
+    zip_with(|x, y| (x - y) / (0.015 * y), &deviation, &d)
+}

@@ -33,11 +33,11 @@ di_plus = df['di_plus']
 di_minus = df['di_minus']
 k = df['k']
 d = df['d']
-#rsi2 = dg['rsi']
+cci = df['cci']
 
 # Plot
 with plt.style.context(["science", "nature"]):
-    fig, axs = plt.subplots(6, 1, figsize=(6, 8), sharex=True, gridspec_kw={'height_ratios': [4, 1, 1, 1, 1, 1]})
+    fig, axs = plt.subplots(7, 1, figsize=(6, 8), sharex=True, gridspec_kw={'height_ratios': [4, 1, 1, 1, 1, 1, 1]})
     axs[0].autoscale(tight=True)
     axs[0].plot(x, tp, label='Typical Price')
     axs[0].plot(x, sma, '--', label='SMA(20)')
@@ -105,9 +105,17 @@ with plt.style.context(["science", "nature"]):
     axs[5].bar(x, di_up, color='r', width=0.8)
     axs[5].bar(x, di_down, color='b', width=0.8)
     axs[5].set_ylim([-1, 1])
-    axs[5].set_xlabel("Date")
     axs[5].set_ylabel("DI+/-")
     axs[5].grid(True)
+
+    axs[6].autoscale(tight=True)
+    axs[6].plot(x, cci / 100, label='CCI')
+    axs[6].axhline(y=1, color='r', linestyle='--')
+    axs[6].axhline(y=0, color='k', linestyle='--')
+    axs[6].axhline(y=-1, color='b', linestyle='--')
+    axs[6].set_xlabel("Date")
+    axs[6].set_ylabel("CCI/100")
+    axs[6].grid(True)
 
     #axs[6].autoscale(tight=True)
     #axs[6].plot(x, k, label='\%K')

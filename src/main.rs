@@ -1,6 +1,6 @@
 use peroxide::fuga::*;
 use fmp::api::HistoricalPriceFull;
-use fmp::ta::{sma, ema, wma, rsi, macd, adx_dmi, stochastic, divergence};
+use fmp::ta::{sma, ema, wma, rsi, macd, adx_dmi, stochastic, divergence, cci};
 use std::env::args;
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -31,6 +31,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let macd_signal = ema(&macd_, 9);
     let (adx_, di_plus, di_minus) = adx_dmi(&high, &low, &close, 14);
     let (k, d) = stochastic(&high, &low, &close, 14, 3);
+    let cci_ = cci(&high, &low, &close, 20);
 
     // Result
     let date = date[240..].to_vec();
@@ -49,6 +50,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let di_minus = di_minus[240..].to_vec();
     let k = k[240..].to_vec();
     let d = d[240..].to_vec();
+    let cci_ = cci_[240..].to_vec();
 
     let mut dg = DataFrame::new(vec![]);
     dg.push("date", Series::new(date));
@@ -69,6 +71,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     dg.push("di_minus", Series::new(di_minus));
     dg.push("k", Series::new(k));
     dg.push("d", Series::new(d));
+    dg.push("cci", Series::new(cci_));
 
     dg.print();
 
