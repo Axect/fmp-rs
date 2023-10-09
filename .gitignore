@@ -1,3 +1,6 @@
 target/
 api_key.txt
 data/
+__pycache__/
+src/example_package/
+tests/
