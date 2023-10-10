@@ -2,7 +2,10 @@ use peroxide::fuga::*;
 use crate::ta::*;
 
 pub trait Strategy {
+    /// Daily Return
     fn daily_return(&self) -> Vec<f64>;
+
+    /// Cumulative Return
     fn cumulative_return(&self) -> Vec<f64> {
         let dr = self.daily_return();
         dr.into_iter().scan(1f64, |state, x| {
@@ -10,22 +13,82 @@ pub trait Strategy {
             Some(*state)
         }).collect::<Vec<f64>>()
     }
-    fn volatility(&self, period: usize) -> Vec<f64> {
+
+    /// Rolling Volatility
+    fn roll_volatility(&self, period: usize) -> Vec<f64> {
         let dr = self.daily_return();
         let mut vol = vec![0f64; dr.len()];
         for i in period..dr.len() {
-            vol[i] = dr[i - period..i].to_vec().sd() * (period as f64).sqrt();
+            vol[i] = dr[i - period..i].to_vec().sd() * (252 as f64).sqrt();
         }
         vol
     }
-    fn sharpe_ratio(&self, period: usize) -> Vec<f64> {
+
+    /// Rolling Sharpe Ratio
+    fn roll_sharpe_ratio(&self, risk_free: &[f64], period: usize) -> Vec<f64> {
         let dr = self.daily_return();
         let mut sr = vec![0f64; dr.len()];
         for i in period..dr.len() {
             let dr_roll = dr[i - period..i].to_vec();
-            sr[i] = dr_roll.mean() / dr_roll.sd();
+            let rf = risk_free[i - period..i].to_vec();
+            let excess_return = dr_roll.sub_v(&rf);
+            sr[i] = excess_return.mean() / dr.sd() * (252 as f64).sqrt();
         }
         sr
+    }
+
+    /// Drawdown
+    fn drawdown(&self) -> Vec<f64> {
+        let cr = self.cumulative_return();
+        let mut dd = vec![0f64; cr.len()];
+        let mut max = 0f64;
+        for i in 0..cr.len() {
+            if cr[i] > max {
+                max = cr[i];
+            } else {
+                dd[i] = (max - cr[i]) / max;
+            }
+        }
+        dd
+    }
+
+    /// Volatility
+    fn volatility(&self) -> f64 {
+        let dr = self.daily_return();
+        dr.sd() * (dr.len() as f64).sqrt()
+    }
+
+    /// Sharpe Ratio
+    fn sharpe_ratio(&self, risk_free: &[f64]) -> f64 {
+        let dr = self.daily_return();
+        let rf = risk_free.to_vec();
+        let excess_return = dr.sub_v(&rf);
+        excess_return.mean() / dr.sd() * (dr.len() as f64).sqrt()
+    }
+
+    /// Cumulative Annual Growth Rate
+    fn cagr(&self) -> f64 {
+        let cr = self.cumulative_return();
+        let n = cr.len();
+        (cr[n - 1].powf(1f64 / (n as f64)) - 1f64) * 100f64
+    }
+
+    /// Maximum Drawdown
+    fn mdd(&self) -> f64 {
+        let cr = self.cumulative_return();
+        let mut max = 0f64;
+        let mut mdd = 0f64;
+        for i in 0..cr.len() {
+            if cr[i] > max {
+                max = cr[i];
+            } else {
+                let dd = (max - cr[i]) / max;
+                if dd > mdd {
+                    mdd = dd;
+                }
+            }
+        }
+        mdd
     }
 }
 
