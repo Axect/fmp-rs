@@ -63,7 +63,7 @@ pub trait Strategy {
         let dr = self.daily_return();
         let rf = risk_free.to_vec();
         let excess_return = dr.sub_v(&rf);
-        excess_return.mean() / dr.sd() * (dr.len() as f64).sqrt()
+        excess_return.mean() / excess_return.sd() * (252 as f64).sqrt()
     }
 
     /// Cumulative Annual Growth Rate
@@ -113,6 +113,37 @@ impl Strategy for BuyAndHold {
         res[0] = (self.close[0] - self.init) / self.init;
         for i in 1..self.close.len() {
             res[i] = (self.close[i] - self.close[i - 1]) / self.close[i - 1];
+        }
+        res
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct MACrossover {
+    pub ma1: usize,
+    pub ma2: usize,
+    pub close: Vec<f64>,
+}
+
+impl MACrossover {
+    pub fn new(ma1: usize, ma2: usize, close: &[f64]) -> Self {
+        Self {
+            ma1,
+            ma2,
+            close: close.to_vec(),
+        }
+    }
+}
+
+impl Strategy for MACrossover {
+    fn daily_return(&self) -> Vec<f64> {
+        let mut res = vec![0f64; self.close.len()];
+        let ma1 = sma(&self.close, self.ma1);
+        let ma2 = sma(&self.close, self.ma2);
+        for i in 1..self.close.len() {
+            if ma1[i] > ma2[i] {
+                res[i] = (self.close[i] - self.close[i - 1]) / self.close[i - 1];
+            }
         }
         res
     }

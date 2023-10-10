@@ -1,7 +1,7 @@
 use peroxide::fuga::*;
 use fmp::strategy::*;
 use fmp::ta::*;
-use fmp::api::{HistoricalPriceFull, DailyTreasury};
+use fmp::api::HistoricalPriceFull;
 use std::env::args;
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -15,13 +15,6 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut hp = HistoricalPriceFull::new(&symbol);
     hp.download_interval(&api_key, from, to)?;
 
-    //let mut tr = DailyTreasury::new();
-    //tr.download_interval(&api_key, from, to)?;
-    //let tr_df = tr.to_dataframe_simple();
-    //tr_df.print();
-    //let tr_y10 = tr.get_year10_vec();
-    //let risk_free = sma(&tr_y10, 120);
-    
     let mut tnx = HistoricalPriceFull::new("^TNX");
     tnx.download_interval(&api_key, from, to)?;
     let tnx = tnx.get_close_vec();
@@ -32,31 +25,43 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let open: Vec<f64> = df["open"].to_vec();
     let close: Vec<f64> = df["close"].to_vec();
 
+    // Buy and Hold
     let init = open[0];
     let bnh = BuyAndHold::new(init, &close);
     let bnh_cr = bnh.cumulative_return();
     let bnh_vol = bnh.roll_volatility(120);
     let bnh_sr = bnh.roll_sharpe_ratio(&risk_free, 120);
     let bnh_dd = bnh.drawdown();
-
     df.push("bnh_cr", Series::new(bnh_cr));
     df.push("bnh_vol", Series::new(bnh_vol));
     df.push("bnh_sr", Series::new(bnh_sr));
     df.push("bnh_dd", Series::new(bnh_dd));
 
+    // MA Crossover
+    let ma_co = MACrossover::new(20, 50, &close);
+    let ma_co_cr = ma_co.cumulative_return();
+    let ma_co_vol = ma_co.roll_volatility(120);
+    let ma_co_sr = ma_co.roll_sharpe_ratio(&risk_free, 120);
+    let ma_co_dd = ma_co.drawdown();
+    df.push("ma_co_cr", Series::new(ma_co_cr));
+    df.push("ma_co_vol", Series::new(ma_co_vol));
+    df.push("ma_co_sr", Series::new(ma_co_sr));
+    df.push("ma_co_dd", Series::new(ma_co_dd));
+
     df.print();
 
-    df.write_parquet(&format!("data/{}_bnh.parquet", symbol), CompressionOptions::Uncompressed)?;
+    df.write_parquet(&format!("data/{}_strategy.parquet", symbol), CompressionOptions::Uncompressed)?;
 
     let mut dg = DataFrame::new(vec![]);
-    dg.push("CAGR", Series::new(vec![bnh.cagr()]));
-    dg.push("Volatility", Series::new(vec![bnh.volatility()]));
-    dg.push("Sharpe", Series::new(vec![bnh.sharpe_ratio(&risk_free)]));
-    dg.push("MDD", Series::new(vec![bnh.mdd()]));
+    dg.push("Strategy", Series::new(vec!["BnH".to_string(), "MA_CO".to_string()]));
+    dg.push("CAGR", Series::new(vec![bnh.cagr(), ma_co.cagr()]));
+    dg.push("Volatility", Series::new(vec![bnh.volatility(), ma_co.volatility()]));
+    dg.push("Sharpe", Series::new(vec![bnh.sharpe_ratio(&risk_free), ma_co.sharpe_ratio(&risk_free)]));
+    dg.push("MDD", Series::new(vec![bnh.mdd(), ma_co.mdd()]));
 
     dg.print();
 
-    dg.write_parquet(&format!("data/{}_bnh_summary.parquet", symbol), CompressionOptions::Uncompressed)?;
+    dg.write_parquet(&format!("data/{}_summary.parquet", symbol), CompressionOptions::Uncompressed)?;
 
     Ok(())
 }
