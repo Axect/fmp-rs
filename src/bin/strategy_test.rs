@@ -24,6 +24,10 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut df = hp.to_dataframe_simple();
     let open: Vec<f64> = df["open"].to_vec();
     let close: Vec<f64> = df["close"].to_vec();
+    let high: Vec<f64> = df["high"].to_vec();
+    let low: Vec<f64> = df["low"].to_vec();
+
+    df.print();
 
     // Buy and Hold
     let init = open[0];
@@ -48,16 +52,33 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     df.push("ma_co_sr", Series::new(ma_co_sr));
     df.push("ma_co_dd", Series::new(ma_co_dd));
 
-    df.print();
+    // MACD + ADX
+    let macd_adx = MACD_ADX::new(0.5, &high, &low, &close);
+    let macd_adx_cr = macd_adx.cumulative_return();
+    let macd_adx_vol = macd_adx.roll_volatility(120);
+    let macd_adx_sr = macd_adx.roll_sharpe_ratio(&risk_free, 120);
+    let macd_adx_dd = macd_adx.drawdown();
+    df.push("macd_adx_cr", Series::new(macd_adx_cr));
+    df.push("macd_adx_vol", Series::new(macd_adx_vol));
+    df.push("macd_adx_sr", Series::new(macd_adx_sr));
+    df.push("macd_adx_dd", Series::new(macd_adx_dd));
 
     df.write_parquet(&format!("data/{}_strategy.parquet", symbol), CompressionOptions::Uncompressed)?;
 
     let mut dg = DataFrame::new(vec![]);
-    dg.push("Strategy", Series::new(vec!["BnH".to_string(), "MA_CO".to_string()]));
-    dg.push("CAGR", Series::new(vec![bnh.cagr(), ma_co.cagr()]));
-    dg.push("Volatility", Series::new(vec![bnh.volatility(), ma_co.volatility()]));
-    dg.push("Sharpe", Series::new(vec![bnh.sharpe_ratio(&risk_free), ma_co.sharpe_ratio(&risk_free)]));
-    dg.push("MDD", Series::new(vec![bnh.mdd(), ma_co.mdd()]));
+    dg.push("Strategy", 
+        Series::new(
+            vec![
+                "BnH".to_string(),
+                "MA_CO".to_string(),
+                "MACD_ADX".to_string()
+            ]
+        )
+    );
+    dg.push("CAGR", Series::new(vec![bnh.cagr(), ma_co.cagr(), macd_adx.cagr()]));
+    dg.push("Volatility", Series::new(vec![bnh.volatility(), ma_co.volatility(), macd_adx.volatility()]));
+    dg.push("Sharpe", Series::new(vec![bnh.sharpe_ratio(&risk_free), ma_co.sharpe_ratio(&risk_free), macd_adx.sharpe_ratio(&risk_free)]));
+    dg.push("MDD", Series::new(vec![bnh.mdd(), ma_co.mdd(), macd_adx.mdd()]));
 
     dg.print();
 

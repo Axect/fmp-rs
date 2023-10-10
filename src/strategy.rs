@@ -92,6 +92,7 @@ pub trait Strategy {
     }
 }
 
+// Buy and Hold
 #[derive(Debug, Clone)]
 pub struct BuyAndHold {
     pub init: f64,
@@ -118,6 +119,7 @@ impl Strategy for BuyAndHold {
     }
 }
 
+// Moving Average Crossover
 #[derive(Debug, Clone)]
 pub struct MACrossover {
     pub ma1: usize,
@@ -148,3 +150,75 @@ impl Strategy for MACrossover {
         res
     }
 }
+
+// MACD + ADX
+#[allow(non_camel_case_types)]
+#[derive(Debug, Clone)]
+pub struct MACD_ADX {
+    pub thr: f64,
+    pub macd_osc: Vec<f64>,
+    pub adx: Vec<f64>,
+    pub close: Vec<f64>,
+}
+
+impl MACD_ADX {
+    pub fn new(thr: f64, high: &[f64], low: &[f64], close: &[f64]) -> Self {
+        let macd_ = macd(close, 12, 26);
+        let macd_signal = ema(&macd_, 9);
+        let (adx_, _, _) = adx_dmi(high, low, close, 14);
+
+        let macd_osc = macd_.sub_v(&macd_signal)
+            .fmap(|x| (x / macd_signal.max() * 7.5f64).tanh());
+
+        Self {
+            thr,
+            macd_osc,
+            adx: adx_,
+            close: close.to_vec(),
+        }
+    }
+}
+
+impl Strategy for MACD_ADX {
+    // Sell : macd_osc > thr -> macd_osc < 0 && adx > 25
+    // Buy : macd_osc < -thr -> macd_osc > 0 && adx > 25
+    fn daily_return(&self) -> Vec<f64> {
+        let mut res = vec![0f64; self.macd_osc.len()];
+        let mut buy_n_hold = false;
+        let mut sell = false;
+        let mut touch_up = false;
+        let mut touch_down = false;
+
+        for i in 1..self.macd_osc.len() {
+            if self.macd_osc[i] < -self.thr {
+                if !buy_n_hold && !touch_down {
+                    touch_down = true;
+                }
+            } else if self.macd_osc[i] > 0f64 {
+                if touch_down {
+                    buy_n_hold = true;
+                    touch_down = false;
+                }
+            } else if self.macd_osc[i] > self.thr {
+                if buy_n_hold && !touch_up {
+                    touch_up = true;
+                }
+            } else if self.macd_osc[i] < 0f64 {
+                if touch_up {
+                    sell = true;
+                    touch_up = false;
+                }
+            }
+
+            if buy_n_hold {
+                res[i] = (self.close[i] - self.close[i - 1]) / self.close[i - 1];
+            } else if sell {
+                res[i] = (self.close[i] - self.close[i - 1]) / self.close[i - 1];
+                buy_n_hold = false;
+                sell = false;
+            }
+        }
+        res
+    }
+}
+
