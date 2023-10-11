@@ -63,6 +63,7 @@ pub struct BacktestReport {
     pub volatility: f64,
     pub sharpe_ratio: f64,
     pub mdd: f64,
+    pub balance_history: Vec<f64>,
 }
 
 
@@ -193,7 +194,18 @@ impl Strategy for BuyAndHold {
             order_map.insert(symbol.to_string(), Order::new(symbol, 0));
         }
 
-        if timestamp % self.rebalance == 0 {
+        if self.rebalance == 0 {
+            if !self.bought {
+                // Opening
+                let current_balance = portfolio.balance;
+                for (w, symbol) in weight.iter().zip(portfolio.symbols.iter()) {
+                    let current_price = chart_map.get(symbol).as_ref().unwrap().close;
+                    let shares = (current_balance * w / current_price) as isize;
+                    order_map.insert(symbol.to_string(), Order::new(symbol, shares));
+                }
+                self.bought = true;
+            }
+        } else if timestamp % self.rebalance == 0 {
             if self.bought {
                 // Closing all positions
                 for symbol in portfolio.symbols.iter() {
@@ -244,7 +256,7 @@ impl Backtester {
     }
 
     pub fn get_chart(&self, timestamp: usize) -> &HashMap<String, Chart> {
-        &self.market_data.chart[timestamp]
+        &self.market_data.chart[timestamp - 1]
     }
 
     pub fn get_risk_free(&self) -> &Vec<f64> {
@@ -256,7 +268,7 @@ impl Backtester {
         let shares = self.get_shares().to_vec();
         let balance = self.get_balance();
         for (i, (symbol, o)) in order.iter().enumerate() {
-            let price = chart.get(symbol).as_ref().unwrap().open;
+            let price = chart.get(symbol).as_ref().unwrap().close;
             let current_share = &shares[i];
             let order_share = o.shares;
             let cost = price * (order_share as f64);
@@ -266,7 +278,7 @@ impl Backtester {
     }
 
     pub fn obtain_value(&self, timestamp: usize) -> f64 {
-        let chart = self.get_chart(timestamp - 1);
+        let chart = self.get_chart(timestamp);
         let shares = self.get_shares();
         let mut value = self.get_balance();
         for (i, symbol) in self.get_symbols().iter().enumerate() {
@@ -279,16 +291,20 @@ impl Backtester {
     pub fn run(&mut self, rolling_window: usize) -> BacktestReport {
         let mut timestamp = 1usize;
         let mut daily_return = vec![0f64; self.market_data.len()];
+        let mut balance_history = vec![0f64; self.market_data.len()];
 
         let mut total_value = self.obtain_value(timestamp);
         while timestamp <= self.market_data.len() {
             let idx = timestamp - 1;
-            let chart_map = self.get_chart(idx).clone();
-            let order_map = self.strategy.gen_order_map(idx, &chart_map, &self.portfolio);
-            self.execute_order(&order_map, idx);
+            let chart_map = self.get_chart(timestamp).clone();
+            let order_map = self.strategy.gen_order_map(timestamp, &chart_map, &self.portfolio);
+            println!("Before: {}, Value: {}", self.get_balance(), total_value);
+            self.execute_order(&order_map, timestamp);
+            println!("After: {}, Value: {}", self.get_balance(), self.obtain_value(timestamp));
             let new_value = self.obtain_value(timestamp);
             daily_return[idx] = (new_value - total_value) / total_value;
             total_value = new_value;
+            balance_history[idx] = total_value;
             timestamp += 1;
         }
 
@@ -344,6 +360,7 @@ impl Backtester {
             volatility,
             sharpe_ratio,
             mdd,
+            balance_history,
         }
     }
 }
@@ -385,6 +402,10 @@ impl BacktestReport {
         self.mdd
     }
 
+    pub fn get_balance_history(&self) -> &Vec<f64> {
+        &self.balance_history
+    }
+
     pub fn to_dataframe(&self) -> DataFrame {
         let mut df = DataFrame::new(vec![]);
         df.push("date", Series::new(self.market_data.date.clone()));
@@ -393,6 +414,7 @@ impl BacktestReport {
         df.push("rolling_volatility", Series::new(self.rolling_volatility.clone()));
         df.push("rolling_sharpe_ratio", Series::new(self.rolling_sharpe_ratio.clone()));
         df.push("drawdown", Series::new(self.drawdown.clone()));
+        df.push("balance_history", Series::new(self.balance_history.clone()));
         df
     }
 

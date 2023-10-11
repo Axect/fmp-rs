@@ -22,6 +22,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     df.print();
     dg.print();
+    
+    df.write_parquet("./data/trade_test_00.parquet", CompressionOptions::Uncompressed)?;
+    dg.write_parquet("./data/trade_report_00.parquet", CompressionOptions::Uncompressed)?;
 
     Ok(())
 }
