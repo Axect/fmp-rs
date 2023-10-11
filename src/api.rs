@@ -2,6 +2,41 @@ use serde::Deserialize;
 use peroxide::fuga::*;
 use reqwest::header::*;
 
+pub fn download_stocks(symbols: &[String], from: &str, to: &str, api_key: &str) -> Result<HistoricalStockList, Box<dyn std::error::Error>> {
+    let mut hpf_vec = vec![];
+    for symbol in symbols {
+        let mut hpf = HistoricalPriceFull::new(symbol);
+        hpf.download_interval(api_key, from, to)?;
+        hpf_vec.push(hpf);
+    }
+    Ok(HistoricalStockList {
+        historicalStockList: hpf_vec
+    })
+}
+
+pub fn download_risk_free(from: &str, to: &str, api_key: &str) -> (Vec<String>, Vec<f64>) {
+    let symbol = "^TNX";
+    let mut hpf = HistoricalPriceFull::new(symbol);
+    hpf.download_interval(api_key, from, to).unwrap();
+    let tnx = hpf.get_close_vec();
+    let mut risk_free = tnx.fmap(|x| (1f64 * x / 100f64).powf(1f64 / 252f64) - 1f64);
+    risk_free[0 .. 120].fill(0f64);
+    (hpf.get_date_vec(), risk_free)
+}
+
+#[allow(non_snake_case)]
+#[derive(Debug, Deserialize)]
+pub struct HistoricalStockList {
+    historicalStockList: Vec<HistoricalPriceFull>,
+}
+
+impl HistoricalStockList {
+    pub fn get_historical_price_full(&self, index: usize) -> &HistoricalPriceFull {
+        &self.historicalStockList[index]
+    }
+}
+
+
 #[derive(Debug, Deserialize)]
 pub struct HistoricalPriceFull {
     symbol: String,
@@ -9,7 +44,7 @@ pub struct HistoricalPriceFull {
 }
 
 #[allow(non_snake_case)]
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Clone)]
 pub struct HistoricalPrice {
     date: String,
     open: f64,
@@ -369,6 +404,78 @@ impl DailyRSI {
     }
 }
 
+impl HistoricalPrice {
+    pub fn new() -> Self {
+        Self {
+            date: "".to_string(),
+            open: 0f64,
+            high: 0f64,
+            low: 0f64,
+            close: 0f64,
+            adjClose: 0f64,
+            volume: 0f64,
+            unadjustedVolume: 0f64,
+            change: 0f64,
+            changePercent: 0f64,
+            vwap: 0f64,
+            label: "".to_string(),
+            changeOverTime: 0f64,
+        }
+    }
+
+    pub fn get_date(&self) -> &str {
+        &self.date
+    }
+
+    pub fn get_open(&self) -> f64 {
+        self.open
+    }
+
+    pub fn get_high(&self) -> f64 {
+        self.high
+    }
+
+    pub fn get_low(&self) -> f64 {
+        self.low
+    }
+
+    pub fn get_close(&self) -> f64 {
+        self.close
+    }
+
+    pub fn get_adj_close(&self) -> f64 {
+        self.adjClose
+    }
+
+    pub fn get_volume(&self) -> f64 {
+        self.volume
+    }
+
+    pub fn get_unadjusted_volume(&self) -> f64 {
+        self.unadjustedVolume
+    }
+
+    pub fn get_change(&self) -> f64 {
+        self.change
+    }
+
+    pub fn get_change_percent(&self) -> f64 {
+        self.changePercent
+    }
+
+    pub fn get_vwap(&self) -> f64 {
+        self.vwap
+    }
+
+    pub fn get_label(&self) -> &str {
+        &self.label
+    }
+
+    pub fn get_change_over_time(&self) -> f64 {
+        self.changeOverTime
+    }
+}
+
 #[allow(dead_code)]
 impl HistoricalPriceFull {
     pub fn new(symbol: &str) -> Self {
@@ -424,6 +531,10 @@ impl HistoricalPriceFull {
 
     pub fn get_historical(&self) -> &Vec<HistoricalPrice> {
         &self.historical
+    }
+
+    pub fn get_mut_historical(&mut self) -> &mut Vec<HistoricalPrice> {
+        &mut self.historical
     }
 
     pub fn get_date_vec(&self) -> Vec<String> {

@@ -32,7 +32,7 @@ pub trait Strategy {
             let dr_roll = dr[i - period..i].to_vec();
             let rf = risk_free[i - period..i].to_vec();
             let excess_return = dr_roll.sub_v(&rf);
-            sr[i] = excess_return.mean() / dr.sd() * (252 as f64).sqrt();
+            sr[i] = excess_return.mean() / excess_return.sd() * (252 as f64).sqrt();
         }
         sr
     }
@@ -210,7 +210,7 @@ impl Strategy for MACD_ADX {
                 }
             }
 
-            if buy_n_hold {
+        if buy_n_hold {
                 res[i] = (self.close[i] - self.close[i - 1]) / self.close[i - 1];
             } else if sell {
                 res[i] = (self.close[i] - self.close[i - 1]) / self.close[i - 1];
