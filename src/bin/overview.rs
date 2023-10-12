@@ -1,25 +1,29 @@
+use fmp::api::{download_stocks, Quote, HistoricalChart};
+use fmp::ta::{adx_dmi, cci, divergence, ema, macd, rsi, sma, stochastic, wma};
 use peroxide::fuga::*;
-use fmp::api::HistoricalPriceFull;
-use fmp::ta::{sma, ema, wma, rsi, macd, adx_dmi, stochastic, divergence, cci};
 use std::env::args;
+use tokio;
 
-fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let api_key_dir = "./api_key.txt";
-    let api_key = std::fs::read_to_string(api_key_dir)?;
-
+#[tokio::main]
+async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let symbol = args().nth(1).unwrap_or("005930.KS".to_string());
-    let from = "2022-01-09"; // For cushion
-    let to = "2023-10-09";
+    let from = "2022-01-09 00:00:00 +09"; // For cushion
+    let to = "2023-10-12 00:00:00 +09";
+    let symbol_wrap = vec![symbol.clone()];
 
-    let mut samsung_price = HistoricalPriceFull::new(&symbol);
-    //samsung_price.download_full(&api_key)?;
-    samsung_price.download_interval(&api_key, from, to)?;
-    let df = samsung_price.to_dataframe_simple();
+    let stock = download_stocks(&symbol_wrap, from, to).await?;
+    let stock = stock[0].clone();
+    let df = stock.to_dataframe();
     let date: Vec<String> = df["date"].to_vec();
     let close: Vec<f64> = df["close"].to_vec();
     let high: Vec<f64> = df["high"].to_vec();
     let low: Vec<f64> = df["low"].to_vec();
-    let tp = close.iter().zip(high.iter()).zip(low.iter()).map(|((c, h), l)| (c + h + l) / 3f64).collect::<Vec<f64>>();
+    let tp = close
+        .iter()
+        .zip(high.iter())
+        .zip(low.iter())
+        .map(|((c, h), l)| (c + h + l) / 3f64)
+        .collect::<Vec<f64>>();
     let (tp_div, tp_slope) = divergence(&tp);
     let sma_ = sma(&tp, 20);
     let ema_ = ema(&tp, 20);
@@ -75,7 +79,10 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     dg.print();
 
-    dg.write_parquet(&format!("./data/{}.parquet", symbol), CompressionOptions::Uncompressed)?;
+    dg.write_parquet(
+        &format!("./data/{}.parquet", symbol),
+        CompressionOptions::Uncompressed,
+    )?;
 
     Ok(())
 }

@@ -14,6 +14,7 @@ dependencies = [
     "argparse>=1.4.0",
     "pandas>=2.1.1",
     "pyfolio-reloaded>=0.9.5",
+    "setuptools>=68.2.2",
 ]
 requires-python = ">=3.11,<3.13"
 readme = "README.md"

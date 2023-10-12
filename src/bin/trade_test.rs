@@ -1,20 +1,75 @@
-use fmp::trade::{BuyAndHold, Backtester};
+use std::collections::HashMap;
+use fmp::trade::{Backtester, BuyAndHold};
 use peroxide::fuga::*;
+use tokio;
 
-fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let api_key_dir = "./api_key.txt";
-    let api_key = std::fs::read_to_string(api_key_dir)?;
+// Rebalancing in 60 days
+// 0  : Semiconductor
+// 00 : Samsung Electronics 100%
+// 01 : SK Hynix 100%
+// 02 : Samsung Electronics 50% + SK Hynix 50% (No rebalancing)
+// 03 : Samsung Electronics 50% + SK Hynix 50%
+// 04 : Samsung Electronics 40% + SK Hynix 40% + Cash 20% (No rebalancing)
+// 05 : Samsung Electronics 40% + SK Hynix 40% + Cash 20%
+// 06 : Samsung Electronics 30% + SK Hynix 30% + Cash 40%
+// 07 : Start with (25%, 25%, 50%) -> (45%, 45%, 10%) : Reduce cash ratio
+// 1  : 10 representative stocks in each sectors (KOSPI 200)
+// List :   Samsung Electronics, LG Chem, POSCO Holdings, Doosan Enerbility, Samsung C&T,
+//          SKT, Asia Paper Manufacturing, Samsung Life, NAVER, SsangYong C&E
+// 10 : Equal weights
+// 11 : More Technology (Tech (Samsung, LG, SKT, NAVER) 16% each, other 6% each)
+// 12 : Less Technology (Tech (Samsung, LG, SKT, NAVER) 4% each, other 14% each)
 
-    let symbols = vec!["005930.KS".to_string(), "005490.KS".to_string()];
-    let from = "2018-01-01";
-    let to = "2023-10-11";
+const TESTNUM: usize = 7;
+#[tokio::main]
+async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    // let symbols = vec!["005930.KS".to_string()];
+    // let symbols = vec!["000660.KS".to_string()];
+    let symbols = vec!["005930.KS".to_string(), "000660.KS".to_string()];
+    //let symbols = vec![
+    //    "005930.KS",    // Samsung Electronics// //
+    //    "051910.KS",    // LG Chem
+    //    "005490.KS",    // POSCO Holdings
+    //    "034020.KS",    // Doosan Enerbility
+    //    "028260.KS",    // Samsung C&T
+    //    "017670.KS",    // SKT
+    //    "002310.KS",    // Asia Paper Manufacturing
+    //    "032830.KS",    // Samsung Life
+    //    "035420.KS",    // NAVER
+    //    "003410.KS",    // SsangYong C&E
+    //];
+    let symbols = symbols.iter().map(|x| x.to_string()).collect::<Vec<String>>();
+    let from = "2018-01-01 00:00:00 +09";
+    let to = "2023-10-12 00:00:00 +09";
     let init_balance = 1000_0000f64;
-    
-    let weight = vec![0.5, 0.5];
-    let rebalance = 60;
+    let interest_rate = 0.04f64;
+    // let sec_fee = 0.00015f64;
+    let sec_fee = {
+        // 0.00015 * 0.8 + 0.001 * 0.2
+        0.00015
+    };
 
-    let bnh = BuyAndHold::new(&weight, rebalance);
-    let mut bt = Backtester::new(&symbols, init_balance, Box::new(bnh), from, to, &api_key)?;
+    // let weight_vec = vec![1f64];
+    let weight_vec = vec![0.2f64, 0.2];
+    // let weight_vec = vec![0.4f64, 0.4];
+    // let weight_vec = vec![0.1f64; symbols.len()];
+    //let weight_vec = vec![
+    //    0.16f64, 0.16, 0.06, 0.06, 0.06, 0.16, 0.06, 0.06, 0.16, 0.06
+    //];
+    let weight = HashMap::from_iter(symbols.clone().into_iter().zip(weight_vec));
+    let rebalance = 60;
+    // let rebalance = 10000;
+
+    let bnh = BuyAndHold::new(weight, rebalance);
+    let mut bt = Backtester::new(
+        &symbols,
+        init_balance,
+        Box::new(bnh),
+        from,
+        to,
+        interest_rate,
+        sec_fee,
+    ).await?;
 
     let report = bt.run(120);
     let df = report.to_dataframe();
@@ -22,9 +77,17 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     df.print();
     dg.print();
-    
-    df.write_parquet("./data/trade_test_00.parquet", CompressionOptions::Uncompressed)?;
-    dg.write_parquet("./data/trade_report_00.parquet", CompressionOptions::Uncompressed)?;
+
+    df.write_parquet(
+        //"./data/trade_test_00.parquet",
+        &format!("./data/trade_test_{:02}.parquet", TESTNUM),
+        CompressionOptions::Uncompressed,
+    )?;
+    dg.write_parquet(
+        //"./data/trade_report_00.parquet",
+        &format!("./data/trade_report_{:02}.parquet", TESTNUM),
+        CompressionOptions::Uncompressed,
+    )?;
 
     Ok(())
 }

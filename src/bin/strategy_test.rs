@@ -1,27 +1,35 @@
-use peroxide::fuga::*;
+use fmp::api::{download_stocks, Quote, HistoricalChart};
 use fmp::strategy::*;
 use fmp::ta::*;
-use fmp::api::HistoricalPriceFull;
+use peroxide::fuga::*;
 use std::env::args;
+use tokio;
 
-fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let api_key_dir = "./api_key.txt";
-    let api_key = std::fs::read_to_string(api_key_dir)?;
-
+#[tokio::main]
+async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let symbol = args().nth(1).unwrap_or("005930.KS".to_string());
-    let from = "2018-01-01";
-    let to = "2023-10-10";
+    let symbol_wrapper = vec![symbol.clone()];
+    let from = "2018-01-01 00:00:00 +09";
+    let to = "2023-10-10 00:00:00 +09";
 
-    let mut hp = HistoricalPriceFull::new(&symbol);
-    hp.download_interval(&api_key, from, to)?;
+    let stock = download_stocks(&symbol_wrapper, from, to).await?;
+    let stock = stock[0].clone();
 
-    let mut tnx = HistoricalPriceFull::new("^TNX");
-    tnx.download_interval(&api_key, from, to)?;
-    let tnx = tnx.get_close_vec();
-    let mut risk_free = tnx.fmap(|x| (1f64 + x / 100f64).powf(1f64 / 252f64) - 1f64);
-    risk_free[0 .. 120].fill(0f64);
+    //let tnx_wrapper = vec!["^TNX".to_string()];
+    //let tnx = download_stocks(&tnx_wrapper, from, to).await?;
+    //let tnx = tnx[0].clone();
+    //let tnx = tnx.get_close_vec();
+    //let mut risk_free = tnx.fmap(|x| (1f64 + x / 100f64).powf(1f64 / 252f64) - 1f64);
+    //risk_free[0..120].fill(0f64);
+    let kospi_wrapper = vec!["^KS11".to_string()];
+    let kospi = download_stocks(&kospi_wrapper, from, to).await?;
+    let kospi = kospi[0].clone();
+    let kospi = kospi.get_close_vec();
+    let init_kospi = kospi[0];
+    let bnh_kospi = BuyAndHold::new(init_kospi, &kospi);
+    let risk_free = bnh_kospi.daily_return();
 
-    let mut df = hp.to_dataframe_simple();
+    let mut df = stock.to_dataframe();
     let open: Vec<f64> = df["open"].to_vec();
     let close: Vec<f64> = df["close"].to_vec();
     let high: Vec<f64> = df["high"].to_vec();
@@ -63,26 +71,51 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     df.push("macd_adx_sr", Series::new(macd_adx_sr));
     df.push("macd_adx_dd", Series::new(macd_adx_dd));
 
-    df.write_parquet(&format!("data/{}_strategy.parquet", symbol), CompressionOptions::Uncompressed)?;
+    df.write_parquet(
+        &format!("data/{}_strategy.parquet", symbol),
+        CompressionOptions::Uncompressed,
+    )?;
 
     let mut dg = DataFrame::new(vec![]);
-    dg.push("Strategy", 
-        Series::new(
-            vec![
-                "BnH".to_string(),
-                "MA_CO".to_string(),
-                "MACD_ADX".to_string()
-            ]
-        )
+    dg.push(
+        "Strategy",
+        Series::new(vec![
+            "BnH".to_string(),
+            "MA_CO".to_string(),
+            "MACD_ADX".to_string(),
+        ]),
     );
-    dg.push("CAGR", Series::new(vec![bnh.cagr(), ma_co.cagr(), macd_adx.cagr()]));
-    dg.push("Volatility", Series::new(vec![bnh.volatility(), ma_co.volatility(), macd_adx.volatility()]));
-    dg.push("Sharpe", Series::new(vec![bnh.sharpe_ratio(&risk_free), ma_co.sharpe_ratio(&risk_free), macd_adx.sharpe_ratio(&risk_free)]));
-    dg.push("MDD", Series::new(vec![bnh.mdd(), ma_co.mdd(), macd_adx.mdd()]));
+    dg.push(
+        "CAGR",
+        Series::new(vec![bnh.cagr(), ma_co.cagr(), macd_adx.cagr()]),
+    );
+    dg.push(
+        "Volatility",
+        Series::new(vec![
+            bnh.volatility(),
+            ma_co.volatility(),
+            macd_adx.volatility(),
+        ]),
+    );
+    dg.push(
+        "Sharpe",
+        Series::new(vec![
+            bnh.sharpe_ratio(&risk_free),
+            ma_co.sharpe_ratio(&risk_free),
+            macd_adx.sharpe_ratio(&risk_free),
+        ]),
+    );
+    dg.push(
+        "MDD",
+        Series::new(vec![bnh.mdd(), ma_co.mdd(), macd_adx.mdd()]),
+    );
 
     dg.print();
 
-    dg.write_parquet(&format!("data/{}_summary.parquet", symbol), CompressionOptions::Uncompressed)?;
+    dg.write_parquet(
+        &format!("data/{}_summary.parquet", symbol),
+        CompressionOptions::Uncompressed,
+    )?;
 
     Ok(())
 }

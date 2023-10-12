@@ -1,5 +1,5 @@
-use peroxide::fuga::*;
 use crate::ta::*;
+use peroxide::fuga::*;
 
 pub trait Strategy {
     /// Daily Return
@@ -8,10 +8,12 @@ pub trait Strategy {
     /// Cumulative Return
     fn cumulative_return(&self) -> Vec<f64> {
         let dr = self.daily_return();
-        dr.into_iter().scan(1f64, |state, x| {
-            *state *= 1f64 + x;
-            Some(*state)
-        }).collect::<Vec<f64>>()
+        dr.into_iter()
+            .scan(1f64, |state, x| {
+                *state *= 1f64 + x;
+                Some(*state)
+            })
+            .collect::<Vec<f64>>()
     }
 
     /// Rolling Volatility
@@ -167,7 +169,8 @@ impl MACD_ADX {
         let macd_signal = ema(&macd_, 9);
         let (adx_, _, _) = adx_dmi(high, low, close, 14);
 
-        let macd_osc = macd_.sub_v(&macd_signal)
+        let macd_osc = macd_
+            .sub_v(&macd_signal)
             .fmap(|x| (x / macd_signal.max() * 7.5f64).tanh());
 
         Self {
@@ -210,7 +213,7 @@ impl Strategy for MACD_ADX {
                 }
             }
 
-        if buy_n_hold {
+            if buy_n_hold {
                 res[i] = (self.close[i] - self.close[i - 1]) / self.close[i - 1];
             } else if sell {
                 res[i] = (self.close[i] - self.close[i - 1]) / self.close[i - 1];
@@ -221,4 +224,3 @@ impl Strategy for MACD_ADX {
         res
     }
 }
-
