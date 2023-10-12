@@ -40,6 +40,7 @@ with plt.style.context(["science", "nature"]):
     axs[1].plot(x, cumulative_return, color='b', label='BnH (Rebalancing = 3 month)')
     axs[1].axhline(y=1, color='k', linestyle='--')
     axs[1].set_ylabel('Cumulative Return')
+    axs[1].set_ylim([0.5, 2])
     axs[1].grid(True)
     axs[1].legend()
 
@@ -47,6 +48,7 @@ with plt.style.context(["science", "nature"]):
     axs[2].plot(x, volatility, color='b', label='BnH (Rebalancing = 3 month)')
     axs[2].axhline(y=vol_mean, color='r', linestyle='--', label=f'Mean: {vol_mean:.2f}')
     axs[2].set_ylabel('Volatility (6 month)')
+    axs[2].set_ylim([0, 1])
     axs[2].grid(True)
     axs[2].legend()
 
@@ -55,6 +57,7 @@ with plt.style.context(["science", "nature"]):
     axs[3].axhline(y=sr_mean, color='r', linestyle='--', label=f'Mean: {sr_mean:.2f}')
     axs[3].axhline(y=0, color='k', linestyle='--')
     axs[3].set_ylabel('Sharpe Ratio (6 month)')
+    axs[3].set_ylim([-5, 5])
     axs[3].grid(True)
     axs[3].legend()
 
@@ -64,11 +67,12 @@ with plt.style.context(["science", "nature"]):
     axs[4].fill_between(x, -drawdown * 100, 0, color='r', alpha=0.3)
     axs[4].axhline(y=-np.max(drawdown) * 100, color='b', linestyle='--', label=f'MDD: {-np.max(drawdown) * 100:.2f}\%')
     axs[4].set_ylabel('Drawdown (\%)')
+    axs[4].set_ylim([-100, 5])
     axs[4].grid(True)
     axs[4].legend()
 
     # Balance History
-    axs[5].plot(x, balance_history, color='b')
+    axs[5].plot(x, balance_history, '.-', color='b')
     axs[5].set_xlabel('Date')
     axs[5].set_ylabel('Balance')
     axs[5].grid(True)
