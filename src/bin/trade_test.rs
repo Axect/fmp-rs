@@ -25,7 +25,7 @@ const TESTNUM: usize = 7;
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // let symbols = vec!["005930.KS".to_string()];
     // let symbols = vec!["000660.KS".to_string()];
-    let symbols = vec!["005930.KS".to_string(), "000660.KS".to_string()];
+    let symbols = vec!["005930.KS".to_string(), "086520.KQ".to_string()];
     //let symbols = vec![
     //    "005930.KS",    // Samsung Electronics// //
     //    "051910.KS",    // LG Chem
@@ -39,7 +39,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     //    "003410.KS",    // SsangYong C&E
     //];
     let symbols = symbols.iter().map(|x| x.to_string()).collect::<Vec<String>>();
-    let from = "2018-01-01 00:00:00 +09";
+    let from = "2019-03-08 00:00:00 +09";
     let to = "2023-10-12 00:00:00 +09";
     let init_balance = 1000_0000f64;
     let interest_rate = 0.04f64;
@@ -50,7 +50,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     };
 
     // let weight_vec = vec![1f64];
-    let weight_vec = vec![0.2f64, 0.2];
+    let weight_vec = vec![0.4f64, 0.4];
     // let weight_vec = vec![0.4f64, 0.4];
     // let weight_vec = vec![0.1f64; symbols.len()];
     //let weight_vec = vec![
