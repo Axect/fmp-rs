@@ -124,11 +124,11 @@ pub fn atr(high: &[f64], low: &[f64], close: &[f64], period: usize) -> Vec<f64> 
     }
     let mut atr = vec![0f64; high.len()];
     let mut sum = 0f64;
-    for i in 0 .. period {
+    for i in 0..period {
         sum += tr[i];
         atr[i] = sum / (i + 1) as f64;
     }
-    for i in period .. high.len() {
+    for i in period..high.len() {
         atr[i] = (atr[i - 1] * (period - 1) as f64 + tr[i]) / period as f64;
     }
     atr
@@ -136,12 +136,17 @@ pub fn atr(high: &[f64], low: &[f64], close: &[f64], period: usize) -> Vec<f64> 
 
 /// Average Directional movement Index & Directional Movement Index
 #[allow(unused_assignments)]
-pub fn adx_dmi(high: &[f64], low: &[f64], close: &[f64], period: usize) -> (Vec<f64>, Vec<f64>, Vec<f64>) {
+pub fn adx_dmi(
+    high: &[f64],
+    low: &[f64],
+    close: &[f64],
+    period: usize,
+) -> (Vec<f64>, Vec<f64>, Vec<f64>) {
     let mut up_move = 0f64;
     let mut down_move = 0f64;
     let mut dm_plus = vec![0f64; high.len()];
     let mut dm_minus = vec![0f64; high.len()];
-    for i in 1 .. high.len() {
+    for i in 1..high.len() {
         up_move = high[i] - high[i - 1];
         down_move = low[i - 1] - low[i];
 
@@ -175,7 +180,8 @@ pub fn adx_dmi(high: &[f64], low: &[f64], close: &[f64], period: usize) -> (Vec<
         atr[0] = atr[1];
     }
 
-    let (di_plus, di_minus): (Vec<f64>, Vec<f64>) = atr.iter()
+    let (di_plus, di_minus): (Vec<f64>, Vec<f64>) = atr
+        .iter()
         .zip(dm_plus_ema.iter().zip(dm_minus_ema.iter()))
         .map(|(x, (y, z))| (100f64 * y / x, 100f64 * z / x))
         .unzip();
@@ -185,7 +191,13 @@ pub fn adx_dmi(high: &[f64], low: &[f64], close: &[f64], period: usize) -> (Vec<
 }
 
 /// Stochastic Oscillator
-pub fn stochastic(high: &[f64], low: &[f64], close: &[f64], period: usize, smooth: usize) -> (Vec<f64>, Vec<f64>) {
+pub fn stochastic(
+    high: &[f64],
+    low: &[f64],
+    close: &[f64],
+    period: usize,
+    smooth: usize,
+) -> (Vec<f64>, Vec<f64>) {
     let mut k = vec![0f64; high.len()];
     for i in 0..high.len() {
         let mut highest = high[i];
@@ -222,7 +234,8 @@ pub fn divergence(v: &[f64]) -> (Vec<f64>, Vec<f64>) {
         }
     }
 
-    let (idx_f64, maxima): (Vec<f64>, Vec<f64>) = maxima.into_iter().map(|(x, y)| (x as f64, y)).unzip();
+    let (idx_f64, maxima): (Vec<f64>, Vec<f64>) =
+        maxima.into_iter().map(|(x, y)| (x as f64, y)).unzip();
 
     // Find all local maxima of local maxima
     let mut maxima2 = vec![];
@@ -241,7 +254,8 @@ pub fn divergence(v: &[f64]) -> (Vec<f64>, Vec<f64>) {
         }
     }
 
-    let (mut idx_f64, mut maxima): (Vec<f64>, Vec<f64>) = maxima2.into_iter().map(|(x, y)| (idx_f64[x], y)).unzip();
+    let (mut idx_f64, mut maxima): (Vec<f64>, Vec<f64>) =
+        maxima2.into_iter().map(|(x, y)| (idx_f64[x], y)).unzip();
 
     // Insert first & last point if it is not included
     if idx_f64[0] != 0f64 {
