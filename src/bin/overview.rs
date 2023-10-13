@@ -1,8 +1,7 @@
-use fmp::api::{download_stocks, Quote, HistoricalChart};
+use fmp::api::download_stocks;
 use fmp::ta::{adx_dmi, cci, divergence, ema, macd, rsi, sma, stochastic, wma};
 use peroxide::fuga::*;
 use std::env::args;
-use tokio;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
