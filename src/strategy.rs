@@ -1,10 +1,48 @@
-use crate::ta::*;
-use peroxide::fuga::*;
-use std::collections::HashMap;
 use crate::{
     api::Chart,
-    trade::{Portfolio, Order},
+    trade::{Order, Portfolio},
 };
+#[allow(unused_imports)]
+use peroxide::fuga::*;
+use std::collections::HashMap;
+
+pub trait RebalanceStrategy {
+    fn should_rebalance(
+        &self,
+        timestamp: usize,
+        chart_map: &HashMap<String, Chart>,
+        portfolio: &Portfolio,
+    ) -> bool;
+    fn reset(&mut self);
+}
+
+pub struct PeriodicRebalance {
+    pub period: usize,
+    pub last_rebalance: usize,
+}
+
+impl PeriodicRebalance {
+    pub fn new(period: usize) -> Self {
+        Self {
+            period,
+            last_rebalance: 0,
+        }
+    }
+}
+
+impl RebalanceStrategy for PeriodicRebalance {
+    fn should_rebalance(
+        &self,
+        timestamp: usize,
+        _chart_map: &HashMap<String, Chart>,
+        _portfolio: &Portfolio,
+    ) -> bool {
+        timestamp % self.period == 0 && timestamp != self.last_rebalance
+    }
+    fn reset(&mut self) {
+        self.last_rebalance = 0;
+    }
+}
 
 pub trait Strategy {
     fn gen_order_map(
@@ -18,15 +56,18 @@ pub trait Strategy {
 
 pub struct BuyAndHold {
     pub weight: HashMap<String, f64>,
-    pub rebalance: usize,
+    rebalance_strategy: Box<dyn RebalanceStrategy>,
     bought: bool,
 }
 
 impl BuyAndHold {
-    pub fn new(weight: HashMap<String, f64>, rebalance: usize) -> Self {
+    pub fn new(
+        weight: HashMap<String, f64>,
+        rebalance_strategy: Box<dyn RebalanceStrategy>,
+    ) -> Self {
         Self {
             weight,
-            rebalance,
+            rebalance_strategy,
             bought: false,
         }
     }
@@ -49,19 +90,10 @@ impl Strategy for BuyAndHold {
             order_map.insert(symbol.to_string(), Order::new(symbol, 0));
         }
 
-        if self.rebalance == 0 {
-            if !self.bought {
-                // Opening
-                let current_balance = portfolio.balance;
-                for symbol in symbols.iter() {
-                    let w = self.get_weight(symbol).unwrap();
-                    let current_price = chart_map.get(symbol).as_ref().unwrap().adj_close;
-                    let shares = (current_balance * w / current_price) as isize;
-                    order_map.insert(symbol.to_string(), Order::new(symbol, shares));
-                }
-                self.bought = true;
-            }
-        } else if timestamp % self.rebalance == 0 {
+        if self
+            .rebalance_strategy
+            .should_rebalance(timestamp, chart_map, portfolio)
+        {
             if self.bought {
                 // Closing all positions
                 for symbol in symbols.iter() {
@@ -73,7 +105,7 @@ impl Strategy for BuyAndHold {
                 }
                 self.bought = false;
             }
-        } else if timestamp % self.rebalance == 1 {
+        } else if !self.bought {
             // Opening
             let current_balance = portfolio.balance;
             for symbol in symbols.iter() {
@@ -88,14 +120,9 @@ impl Strategy for BuyAndHold {
     }
 
     fn to_string(&self) -> String {
-        format!("BnH")
+        "BnH".to_string()
     }
 }
-
-
-
-
-
 
 //pub trait Strategy {
 //    /// Daily Return

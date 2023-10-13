@@ -1,8 +1,7 @@
-use std::collections::HashMap;
+use fmp::strategy::{BuyAndHold, PeriodicRebalance};
 use fmp::trade::Backtester;
-use fmp::strategy::BuyAndHold;
 use peroxide::fuga::*;
-use tokio;
+use std::collections::HashMap;
 
 // Rebalancing in 60 days
 // 0  : Semiconductor
@@ -39,7 +38,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     //    "035420.KS",    // NAVER
     //    "003410.KS",    // SsangYong C&E
     //];
-    let symbols = symbols.iter().map(|x| x.to_string()).collect::<Vec<String>>();
+    let symbols = symbols
+        .iter()
+        .map(|x| x.to_string())
+        .collect::<Vec<String>>();
     let from = "2019-03-08 00:00:00 +09";
     let to = "2023-10-12 00:00:00 +09";
     let init_balance = 1000_0000f64;
@@ -58,10 +60,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     //    0.16f64, 0.16, 0.06, 0.06, 0.06, 0.16, 0.06, 0.06, 0.16, 0.06
     //];
     let weight = HashMap::from_iter(symbols.clone().into_iter().zip(weight_vec));
-    let rebalance = 60;
-    // let rebalance = 10000;
+    let rebalance_period = 60;
+    let periodic_rebalance = PeriodicRebalance::new(rebalance_period);
 
-    let bnh = BuyAndHold::new(weight, rebalance);
+    let bnh = BuyAndHold::new(weight, Box::new(periodic_rebalance));
     let mut bt = Backtester::new(
         &symbols,
         init_balance,
@@ -70,7 +72,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         to,
         interest_rate,
         sec_fee,
-    ).await?;
+    )
+    .await?;
 
     let report = bt.run(120);
     let df = report.to_dataframe();
