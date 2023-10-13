@@ -330,7 +330,7 @@ impl Backtester {
         let mut rolling_volatility = vec![0f64; daily_return.len()];
         for i in rolling_window..daily_return.len() {
             rolling_volatility[i] =
-                daily_return[i - rolling_window..i].to_vec().sd() * (252 as f64).sqrt();
+                daily_return[i - rolling_window..i].to_vec().sd() * 252f64.sqrt();
         }
 
         let mut rolling_sharpe_ratio = vec![0f64; daily_return.len()];
@@ -339,8 +339,7 @@ impl Backtester {
             let dr_roll = daily_return[i - rolling_window..i].to_vec();
             let rf = risk_free[i - rolling_window..i].to_vec();
             let excess_return = dr_roll.sub_v(&rf);
-            rolling_sharpe_ratio[i] =
-                excess_return.mean() / excess_return.sd() * (252 as f64).sqrt();
+            rolling_sharpe_ratio[i] = excess_return.mean() / excess_return.sd() * 252f64.sqrt();
         }
 
         let mut drawdown = vec![0f64; daily_return.len()];
@@ -360,8 +359,8 @@ impl Backtester {
             - 1f64;
         let volatility = daily_return.sd() * (daily_return.len() as f64).sqrt();
         let sharpe_ratio = {
-            let excess_return = daily_return.sub_v(&risk_free);
-            excess_return.mean() / excess_return.sd() * (252 as f64).sqrt()
+            let excess_return = daily_return.sub_v(risk_free);
+            excess_return.mean() / excess_return.sd() * 252f64.sqrt()
         };
         let mdd = drawdown.max();
 
