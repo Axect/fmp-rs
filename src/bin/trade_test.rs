@@ -1,5 +1,6 @@
 use std::collections::HashMap;
-use fmp::trade::{Backtester, BuyAndHold};
+use fmp::trade::Backtester;
+use fmp::strategy::BuyAndHold;
 use peroxide::fuga::*;
 use tokio;
 

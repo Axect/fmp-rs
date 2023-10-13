@@ -1,24 +1,21 @@
-use crate::api::{download_stocks, Chart, HistoricalChart, Quote};
+use crate::api::{download_stocks, Chart};
+use crate::strategy::Strategy;
 use peroxide::fuga::*;
 use std::collections::{HashMap, HashSet};
 
 #[derive(Debug, Clone)]
 pub struct Portfolio {
     pub balance: f64,
-    pub shares: HashMap<String, usize>
+    pub shares: HashMap<String, usize>,
 }
 
 impl Portfolio {
     pub fn new(balance: f64, symbols: &[String]) -> Self {
-        let n = symbols.len();
         let mut shares = HashMap::new();
         for symbol in symbols.iter() {
             shares.insert(symbol.to_string(), 0);
         }
-        Self {
-            balance,
-            shares,
-        }
+        Self { balance, shares }
     }
 
     pub fn get_symbols(&self) -> Vec<String> {
@@ -40,16 +37,6 @@ impl Portfolio {
     pub fn update_balance(&mut self, balance: f64) {
         self.balance = balance;
     }
-}
-
-pub trait Strategy {
-    fn gen_order_map(
-        &mut self,
-        timestamp: usize,
-        chart_map: &HashMap<String, Chart>,
-        portfolio: &Portfolio,
-    ) -> HashMap<String, Order>;
-    fn to_string(&self) -> String;
 }
 
 #[derive(Debug, Clone)]
@@ -109,7 +96,7 @@ impl MarketData {
         let vec_hist = download_stocks(symbols, from, to).await?;
         let mut chart_vec_map = HashMap::new();
         let mut date_zip = vec![];
-        for (i, hist) in vec_hist.iter().enumerate() {
+        for (symbol, hist) in symbols.iter().zip(vec_hist.iter()) {
             date_zip.push(
                 hist.get_dates()
                     .iter()
@@ -117,7 +104,7 @@ impl MarketData {
                     .enumerate()
                     .collect::<Vec<(usize, String)>>(),
             );
-            chart_vec_map.insert(i, hist.get_charts().clone());
+            chart_vec_map.insert(symbol.to_string(), hist.get_charts().clone());
         }
         let risk_free_ticker = vec!["^KS11".to_string()];
         let risk_free = download_stocks(&risk_free_ticker, from, to).await?;
@@ -160,12 +147,11 @@ impl MarketData {
             })
             .collect::<Vec<Vec<usize>>>();
 
-        for i in 0..symbols.len() {
-            let chart_vec = chart_vec_map.get_mut(&i).unwrap();
-            let idx = idx_vec[i].clone();
+        for (symbol, idx) in symbols.iter().zip(idx_vec.iter()) {
+            let chart_vec = chart_vec_map.get_mut(symbol).unwrap();
             let mut hist_new = vec![];
-            for j in idx {
-                hist_new.push(chart_vec[j].clone());
+            for &j in idx {
+                hist_new.push(chart_vec[j]);
             }
             *chart_vec = hist_new;
         }
@@ -182,8 +168,8 @@ impl MarketData {
         let risk_free = risk_free_new;
         let risk_free = {
             let mut result = vec![0f64; risk_free.len()];
-            for i in 1 .. risk_free.len() {
-                result[i] = (risk_free[i] - risk_free[i-1]) / risk_free[i-1];
+            for i in 1..risk_free.len() {
+                result[i] = (risk_free[i] - risk_free[i - 1]) / risk_free[i - 1];
             }
             result
         };
@@ -191,11 +177,11 @@ impl MarketData {
         assert_eq!(date.len(), risk_free.len());
 
         let mut chart_vec_new = vec![HashMap::new(); risk_free.len()];
-        for i in 0..risk_free.len() {
-            for j in 0..symbols.len() {
-                let chart = &chart_vec_map.get(&j).as_ref().unwrap()[i];
-                chart_vec_new[i].insert(
-                    symbols[j].clone(),
+        for (i, chart_new) in chart_vec_new.iter_mut().enumerate() {
+            for symbol in symbols.iter() {
+                let chart = &chart_vec_map.get(symbol).as_ref().unwrap()[i];
+                chart_new.insert(
+                    symbol.to_string(),
                     Chart {
                         open: chart.get_open(),
                         high: chart.get_high(),
@@ -220,81 +206,9 @@ impl MarketData {
     pub fn len(&self) -> usize {
         self.chart.len()
     }
-}
 
-pub struct BuyAndHold {
-    pub weight: HashMap<String, f64>,
-    pub rebalance: usize,
-    bought: bool,
-}
-
-impl BuyAndHold {
-    pub fn new(weight: HashMap<String, f64>, rebalance: usize) -> Self {
-        Self {
-            weight,
-            rebalance,
-            bought: false,
-        }
-    }
-
-    pub fn get_weight(&self, symbol: &str) -> Option<&f64> {
-        self.weight.get(symbol)
-    }
-}
-
-impl Strategy for BuyAndHold {
-    fn gen_order_map(
-        &mut self,
-        timestamp: usize,
-        chart_map: &HashMap<String, Chart>,
-        portfolio: &Portfolio,
-    ) -> HashMap<String, Order> {
-        let mut order_map = HashMap::new();
-        let symbols = portfolio.get_symbols();
-        for symbol in symbols.iter() {
-            order_map.insert(symbol.to_string(), Order::new(symbol, 0));
-        }
-
-        if self.rebalance == 0 {
-            if !self.bought {
-                // Opening
-                let current_balance = portfolio.balance;
-                for symbol in symbols.iter() {
-                    let w = self.get_weight(symbol).unwrap();
-                    let current_price = chart_map.get(symbol).as_ref().unwrap().adj_close;
-                    let shares = (current_balance * w / current_price) as isize;
-                    order_map.insert(symbol.to_string(), Order::new(symbol, shares));
-                }
-                self.bought = true;
-            }
-        } else if timestamp % self.rebalance == 0 {
-            if self.bought {
-                // Closing all positions
-                for symbol in symbols.iter() {
-                    let current_share = portfolio.get_share(symbol).unwrap();
-                    order_map.insert(
-                        symbol.to_string(),
-                        Order::new(symbol, -(current_share as isize)),
-                    );
-                }
-                self.bought = false;
-            }
-        } else if timestamp % self.rebalance == 1 {
-            // Opening
-            let current_balance = portfolio.balance;
-            for symbol in symbols.iter() {
-                let w = self.get_weight(symbol).unwrap();
-                let current_price = chart_map.get(symbol).as_ref().unwrap().adj_close;
-                let shares = (current_balance * w / current_price) as isize;
-                order_map.insert(symbol.to_string(), Order::new(symbol, shares));
-            }
-            self.bought = true;
-        }
-        order_map
-    }
-
-    fn to_string(&self) -> String {
-        format!("BnH")
+    pub fn is_empty(&self) -> bool {
+        self.chart.is_empty()
     }
 }
 
