@@ -96,6 +96,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let df_threshold = report_threshold.to_dataframe();
     let dg_threshold = report_threshold.to_report();
 
+    df_threshold.print();
     dg_periodic.print();
     dg_threshold.print();
 
