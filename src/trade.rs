@@ -30,6 +30,10 @@ impl Portfolio {
         self.shares.get_mut(symbol)
     }
 
+    pub fn get_balance(&self) -> f64 {
+        self.balance
+    }
+
     pub fn update_share(&mut self, symbol: &str, share: usize) {
         self.shares.insert(symbol.to_string(), share);
     }
@@ -106,7 +110,7 @@ impl MarketData {
             );
             chart_vec_map.insert(symbol.to_string(), hist.get_charts().clone());
         }
-        let risk_free_ticker = vec!["^KS11".to_string()];
+        let risk_free_ticker = vec!["^TNX".to_string()];
         let risk_free = download_stocks(&risk_free_ticker, from, to).await?;
         let risk_free = risk_free[0].clone();
         let date_risk_free = risk_free.get_dates();
@@ -165,14 +169,16 @@ impl MarketData {
         for i in idx_vec {
             risk_free_new.push(risk_free[i].get_close());
         }
-        let risk_free = risk_free_new;
-        let risk_free = {
-            let mut result = vec![0f64; risk_free.len()];
-            for i in 1..risk_free.len() {
-                result[i] = (risk_free[i] - risk_free[i - 1]) / risk_free[i - 1];
-            }
-            result
-        };
+        //let risk_free = risk_free_new;
+        //let risk_free = {
+        //    let mut result = vec![0f64; risk_free.len()];
+        //    for i in 1..risk_free.len() {
+        //        result[i] = (risk_free[i] - risk_free[i - 1]) / risk_free[i - 1];
+        //    }
+        //    result
+        //};
+        // Annual rate -> Daily rate
+        let risk_free = risk_free_new.fmap(|x| (1f64 + x / 100f64).powf(1f64 / 252f64) - 1f64);
 
         assert_eq!(date.len(), risk_free.len());
 
