@@ -18,15 +18,11 @@ pub trait RebalanceStrategy {
 
 pub struct PeriodicRebalance {
     pub period: usize,
-    pub last_rebalance: usize,
 }
 
 impl PeriodicRebalance {
     pub fn new(period: usize) -> Self {
-        Self {
-            period,
-            last_rebalance: 0,
-        }
+        Self { period }
     }
 }
 
@@ -37,13 +33,16 @@ impl RebalanceStrategy for PeriodicRebalance {
         _chart_map: &HashMap<String, Chart>,
         _portfolio: &Portfolio,
     ) -> bool {
-        timestamp % self.period == 0 && timestamp != self.last_rebalance
+        timestamp % self.period == 0
     }
     fn reset(&mut self) {
-        self.last_rebalance = 0;
+        unimplemented!()
     }
 }
 
+// ┌──────────────────────────────────────────────────────────┐
+//  Strategy
+// └──────────────────────────────────────────────────────────┘
 pub trait Strategy {
     fn gen_order_map(
         &mut self,
